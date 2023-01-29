@@ -26,7 +26,7 @@ export const getFlamechartStyle = withTheme(theme =>
       display: 'grid',
       height: Sizes.DETAIL_VIEW_HEIGHT,
       overflow: 'hidden',
-      gridTemplateColumns: '120px 120px 1fr',
+      gridTemplateColumns: '120px 120px 120px 1fr',
       gridTemplateRows: 'repeat(4, 1fr)',
       borderTop: `${Sizes.SEPARATOR_HEIGHT}px solid ${theme.fgSecondaryColor}`,
       fontSize: FontSize.LABEL,

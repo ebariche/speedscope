@@ -2,10 +2,11 @@ import {StyleDeclarationValue, css} from 'aphrodite'
 import {h, JSX} from 'preact'
 import {getFlamechartStyle} from './flamechart-style'
 import {formatPercent} from '../lib/utils'
-import {Frame, CallTreeNode} from '../lib/profile'
+import {Frame, CallTreeNode, ExtraStatistics} from '../lib/profile'
 import {ColorChit} from './color-chit'
 import {Flamechart} from '../lib/flamechart'
 import {useTheme} from './themes/theme'
+import {ActiveProfileState, useActiveProfileState} from '../app-state/active-profile-state'
 
 interface StatisticsTableProps {
   title: string
@@ -44,6 +45,51 @@ function StatisticsTable(props: StatisticsTableProps) {
         {formatPercent(selfPerc)}
         <div className={css(style.barDisplay)} style={{height: `${selfPerc}%`}} />
       </div>
+    </div>
+  )
+}
+
+interface ExtraStatisticsTableProps {
+  cellStyle: StyleDeclarationValue
+  formatter: (v: number) => string
+  calls: number
+  min: number
+  max: number
+  median: number
+  mean: number
+  stDev: number
+  stErr: number
+}
+
+function ExtraStatisticsTable(props: ExtraStatisticsTableProps) {
+  const style = getFlamechartStyle(useTheme())
+
+  const min = props.formatter(props.min)
+  const max = props.formatter(props.max)
+  const median = props.formatter(props.median)
+  const mean = props.formatter(props.mean)
+  const stDev = props.formatter(props.stDev)
+  const stErr = props.formatter(props.stErr)
+
+  return (
+    <div className={css(style.statsTable)}>
+      <div className={css(props.cellStyle, style.statsTableCell)}>Count</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{props.calls}</div>
+
+      <div className={css(props.cellStyle, style.statsTableCell)}>Min</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{min}</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>Max</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{max}</div>
+
+      <div className={css(props.cellStyle, style.statsTableCell)}>Median</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{median}</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>Mean</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{mean}</div>
+
+      <div className={css(props.cellStyle, style.statsTableCell)}>St.Dev</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{stDev}</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>St.Err</div>
+      <div className={css(props.cellStyle, style.statsTableCell)}>{stErr}</div>
     </div>
   )
 }
@@ -99,6 +145,9 @@ export function FlamechartDetailView(props: FlamechartDetailViewProps) {
   const {flamechart, selectedNode} = props
   const {frame} = selectedNode
 
+  const {profile} = useActiveProfileState() as ActiveProfileState
+  const stats = profile.getExtraStatistics(selectedNode) as ExtraStatistics
+
   return (
     <div className={css(style.detailView)}>
       <StatisticsTable
@@ -116,6 +165,17 @@ export function FlamechartDetailView(props: FlamechartDetailViewProps) {
         selectedTotal={frame.getTotalWeight()}
         selectedSelf={frame.getSelfWeight()}
         formatter={flamechart.formatValue.bind(flamechart)}
+      />
+      <ExtraStatisticsTable
+        cellStyle={style.allInstancesCell}
+        formatter={flamechart.formatValue.bind(flamechart)}
+        calls={stats.calls}
+        min={stats.min}
+        max={stats.max}
+        median={stats.median}
+        mean={stats.mean}
+        stDev={stats.stDev}
+        stErr={stats.stErr}
       />
       <StackTraceView node={selectedNode} getFrameColor={props.getCSSColorForFrame} />
     </div>
