@@ -12,6 +12,7 @@ import {importFromInstrumentsDeepCopy, importFromInstrumentsTrace} from './instr
 import {importFromBGFlameGraph} from './bg-flamegraph'
 import {importFromFirefox} from './firefox'
 import {importSpeedscopeProfiles} from '../lib/file-format'
+import {importNetCoreProfiles} from './netcore'
 import {importFromV8ProfLog} from './v8proflog'
 import {importFromLinuxPerf} from './linux-tools-perf'
 import {importFromHaskell} from './haskell'
@@ -89,7 +90,10 @@ async function _importProfileGroup(dataSource: ProfileDataSource): Promise<Profi
   const contents = await dataSource.readAsText()
 
   // First pass: Check known file format names to infer the file type
-  if (fileName.endsWith('.speedscope.json')) {
+  if (fileName.endsWith('.netcore.speedscope.json')) {
+    console.log('Importing as speedscope json file (.NET)')
+    return importNetCoreProfiles(contents.parseAsJSON(), fileName)
+  } else if (fileName.endsWith('.speedscope.json')) {
     console.log('Importing as speedscope json file')
     return importSpeedscopeProfiles(contents.parseAsJSON())
   } else if (fileName.endsWith('.chrome.json') || /Profile-\d{8}T\d{6}/.exec(fileName)) {

@@ -436,6 +436,88 @@ export class Profile {
       }
     }
   }
+
+  private extraStatistics: Map<string | number, ExtraStatistics> = new Map<string | number, ExtraStatistics>()
+
+  public getExtraStatistics(node: CallTreeNode) : ExtraStatistics | undefined {
+    return this.extraStatistics.get(node.frame.key)
+  }
+
+  protected computeExtraStatistics() {
+    const samples = new Map<string | number, number[]>()
+
+    this.forEachCall(
+      o => {
+        const key = o.frame.key
+
+        const frameSamples = samples.get(key)
+
+        if (frameSamples !== undefined) {
+          frameSamples.push(o.getTotalWeight())
+        } else {
+          samples.set(key, [o.getTotalWeight()])
+        }
+      },
+      c => { }
+    )
+
+    for (const kv of samples) {
+      const weights = kv[1]
+
+      if (weights.length > 1) {
+        weights.sort((a, b) => a - b)
+
+        const length = weights.length
+        const k = Math.floor(length / 2)
+
+        let sum = weights[0] + weights[1]
+
+        for (let x = 2; x < length; x++) {
+          sum += weights[x]
+        }
+
+        const mean = sum / length
+
+        sum = Math.pow(weights[0] - mean, 2) + Math.pow(weights[1] - mean, 2)
+
+        for (let x = 2; x < length; x++) {
+            sum += Math.pow(weights[x] - mean, 2)
+        }
+
+        const stDev = Math.sqrt(sum / length)
+
+        this.extraStatistics.set(kv[0], {
+          calls: length,
+          min: weights[0],
+          max: weights[length - 1],
+          median: length % 2 === 1 ? weights[k] : (weights[k - 1] + weights[k]) / 2,
+          mean: mean,
+          stDev: stDev,
+          stErr: stDev / Math.sqrt(length)
+        })
+      } else {
+        this.extraStatistics.set(kv[0], {
+          calls: 1,
+          min: weights[0],
+          max: weights[0],
+          median: weights[0],
+          mean: weights[0],
+          stDev: 0,
+          stErr: 0
+        })
+      }
+    }
+  }
+}
+
+export interface ExtraStatistics {
+  calls: number
+  min: number
+  max: number
+  median: number
+  mean: number
+  stDev: number
+  stErr: number
 }
 
 export class StackListProfileBuilder extends Profile {
@@ -544,6 +626,9 @@ export class StackListProfileBuilder extends Profile {
       this.weights.reduce((a, b) => a + b, 0),
     )
     this.sortGroupedCallTree()
+
+    this.computeExtraStatistics()
+
     return this
   }
 }
@@ -686,6 +771,9 @@ export class CallTreeProfileBuilder extends Profile {
       throw new Error('Tried to complete profile construction with a non-empty stack')
     }
     this.sortGroupedCallTree()
+
+    this.computeExtraStatistics()
+
     return this
   }
 }
